@@ -1,40 +1,92 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
 import requests
-import os
+import random
+from linebot.models import TemplateSendMessage, ButtonsTemplate, URITemplateAction
+from linebot import LineBotApi
 
-PORT = int(os.environ.get('PORT', 8000))
-GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'
+# Function to search nearby restaurants
+def search_nearby_restaurants(lat, lng, GOOGLE_API_KEY):
+    # Constructing the URL for searching nearby restaurants
+    foodStoreSearch = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?key={}&location={},{}&rankby=distance&type=restaurant&language=zh-TW".format(GOOGLE_API_KEY, lat, lng)
+    
+    # Sending the request to Google Places API
+    FoodReg = requests.get(foodStoreSearch)
+    nearby_restaurants_dict = FoodReg.json()
+    top20_restaurants = nearby_restaurants_dict["results"]
+    res_num = len(top20_restaurants)
 
-class RequestHandler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        self.send_response(200)
-        self.end_headers()
+    # Filtering restaurants with rating higher than 3.9
+    bravo = []
+    for i in range(res_num):
+        try:
+            if top20_restaurants[i]['rating'] > 3.9:
+                print('rate:', top20_restaurants[i]['rating'])
+                bravo.append(i)
+        except KeyError:
+            pass
 
-        payload = json.loads(post_data.decode('utf-8'))
-        if 'location' in payload:
-            location = f"{payload['location']['latitude']},{payload['location']['longitude']}"
-            keyword = payload.get('keyword')
-            if keyword:
-                restaurants = search_restaurants(keyword, location)
-                self.wfile.write(json.dumps(restaurants).encode('utf-8'))
-        else:
-            self.wfile.write(json.dumps({'error': 'Location not found'}).encode('utf-8'))
+    if len(bravo) == 0:
+        content = "没有可吃的"
+        return None
+    else:
+        # Randomly select a restaurant from the filtered list
+        restaurant = top20_restaurants[random.choice(bravo)]
+        return restaurant
 
-def search_restaurants(keyword, location):
-    url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={location}&radius=1000&type=restaurant&keyword={keyword}&key={GOOGLE_MAPS_API_KEY}'
-    response = requests.get(url)
-    results = response.json().get('results', [])
-    restaurants = [{'name': place['name'], 'address': place['vicinity']} for place in results]
-    return restaurants
+# Function to get restaurant details and map URL
+def get_restaurant_details(restaurant, GOOGLE_API_KEY):
+    if restaurant is None:
+        return None, None
+    
+    # Check if the restaurant has photos
+    if restaurant.get("photos") is None:
+        thumbnail_image_url = None
+    else:
+        # Get photo reference and width
+        photo_reference = restaurant["photos"][0]["photo_reference"]
+        photo_width = restaurant["photos"][0]["width"]
+        thumbnail_image_url = "https://maps.googleapis.com/maps/api/place/photo?key={}&photoreference={}&maxwidth={}".format(GOOGLE_API_KEY, photo_reference, photo_width)
 
-def run(server_class=HTTPServer, handler_class=RequestHandler):
-    server_address = ('', PORT)
-    httpd = server_class(server_address, handler_class)
-    print(f'Starting server on port {PORT}...')
-    httpd.serve_forever()
+    # Get restaurant rating and address
+    rating = "無" if restaurant.get("rating") is None else restaurant["rating"]
+    address = "沒有資料" if restaurant.get("vicinity") is None else restaurant["vicinity"]
+    details = "Google Map評分：{}\n地址：{}".format(rating, address)
 
-if __name__ == '__main__':
-    run()
+    # Get Google Maps URL for the restaurant
+    map_url = "https://www.google.com/maps/search/?api=1&query={},{}&query_place_id={}".format(restaurant["geometry"]["location"]["lat"], restaurant["geometry"]["location"]["lng"], restaurant["place_id"])
+
+    return thumbnail_image_url, details, map_url
+
+# Function to send Buttons Template message
+def send_buttons_template(line_bot_api, event, restaurant, thumbnail_image_url, details, map_url):
+    buttons_template = TemplateSendMessage(
+        alt_text=restaurant["name"],
+        template=ButtonsTemplate(
+            thumbnail_image_url=thumbnail_image_url,
+            title=restaurant["name"],
+            text=details,
+            actions=[
+                URITemplateAction(
+                    label='查看地圖',
+                    uri=map_url
+                )
+            ]
+        )
+    )
+    line_bot_api.reply_message(event.reply_token, buttons_template)
+    return 0
+
+# Example usage
+GOOGLE_API_KEY = 'AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE'
+line_bot_api = LineBotApi('ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn/Zgn8YPHKYfxJC90NHFr8ihfry5YKOjFiNPkHv+XGPydkBv5F0UAdB04t89/1O/w1cDnyilFU=')
+event = {'reply_token': 'REPLY_TOKEN'}
+lat = 25.0329694
+lng = 121.5654177
+
+# Search nearby restaurants
+restaurant = search_nearby_restaurants(lat, lng, GOOGLE_API_KEY)
+
+# Get restaurant details and map URL
+thumbnail_image_url, details, map_url = get_restaurant_details(restaurant, GOOGLE_API_KEY)
+
+# Send Buttons Template message
+send_buttons_template(line_bot_api, event, restaurant, thumbnail_image_url, details, map_url)
