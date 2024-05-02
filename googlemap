@@ -4,7 +4,7 @@ import requests
 import os
 
 PORT = int(os.environ.get('PORT', 8000))
-GOOGLE_MAPS_API_KEY = 'AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE'
+GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -14,11 +14,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         payload = json.loads(post_data.decode('utf-8'))
-        keyword = payload.get('keyword')
-        location = payload.get('location')
-        if keyword and location:
-            restaurants = search_restaurants(keyword, location)
-            self.wfile.write(json.dumps(restaurants).encode('utf-8'))
+        if 'location' in payload:
+            location = f"{payload['location']['latitude']},{payload['location']['longitude']}"
+            keyword = payload.get('keyword')
+            if keyword:
+                restaurants = search_restaurants(keyword, location)
+                self.wfile.write(json.dumps(restaurants).encode('utf-8'))
+        else:
+            self.wfile.write(json.dumps({'error': 'Location not found'}).encode('utf-8'))
 
 def search_restaurants(keyword, location):
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={location}&radius=1000&type=restaurant&keyword={keyword}&key={GOOGLE_MAPS_API_KEY}'
