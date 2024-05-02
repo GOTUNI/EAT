@@ -1,24 +1,19 @@
-import os
-import requests
-import random
-
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage, LocationMessage, TemplateSendMessage, ButtonsTemplate, URITemplateAction
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, LocationMessage
+import requests
+import random
 
 app = Flask(__name__)
 
-# Line Bot 設定
-CHANNEL_ACCESS_TOKEN = os.environ.get('ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn/Zgn8YPHKYfxJC90NHFr8ihfry5YKOjFiNPkHv+XGPydkBv5F0UAdB04t89/1O/w1cDnyilFU=')
-CHANNEL_SECRET = os.environ.get('4226f38b9cd8bce4d0417d29d575f750')
+CHANNEL_ACCESS_TOKEN = 'ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn'
+CHANNEL_SECRET = '4226f38b9cd8bce4d0417d29d575f750'
+GOOGLE_MAPS_API_KEY = 'AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE'
+
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-# Google Maps API 設定
-GOOGLE_MAPS_API_KEY = os.environ.get('AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE')
-
-# Line Bot Webhook 路由
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
@@ -30,49 +25,29 @@ def callback():
         abort(400)
     return 'OK'
 
-# 處理文字訊息
-@handler.add(MessageEvent, message=TextMessage)
-def handle_text_message(event):
-    text = event.message.text
-    if text == "附近餐廳":
-        reply_nearby_restaurant(event)
-    else:
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="請輸入「附近餐廳」來查找附近的餐廳")
-        )
-
-# 推薦附近餐廳
-def reply_nearby_restaurant(event):
+@handler.add(MessageEvent, message=LocationMessage)
+def handle_location_message(event):
     lat = event.message.latitude
     lng = event.message.longitude
+    restaurant = search_nearby_restaurant(lat, lng)
+    if restaurant:
+        reply_text = f"我找到一家附近的餐廳：{restaurant['name']}，地址：{restaurant['address']}"
+    else:
+        reply_text = "抱歉，附近沒有找到餐廳"
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+
+def search_nearby_restaurant(lat, lng):
     url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=1000&type=restaurant&key={GOOGLE_MAPS_API_KEY}"
     response = requests.get(url)
-    results = response.json().get('results', [])
-    if results:
-        restaurant = random.choice(results)
-        name = restaurant.get('name', 'Unknown Restaurant')
-        address = restaurant.get('vicinity', 'Unknown Address')
-        map_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}&query_place_id={restaurant['place_id']}"
-        buttons_template = TemplateSendMessage(
-            alt_text=name,
-            template=ButtonsTemplate(
-                title=name,
-                text=address,
-                actions=[
-                    URITemplateAction(
-                        label='查看地圖',
-                        uri=map_url
-                    )
-                ]
-            )
-        )
-        line_bot_api.reply_message(event.reply_token, buttons_template)
+    data = response.json()
+    if 'results' in data and len(data['results']) > 0:
+        restaurant = random.choice(data['results'])
+        name = restaurant.get('name', 'Unknown')
+        address = restaurant.get('vicinity', 'Unknown')
+        return {'name': name, 'address': address}
     else:
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text="附近找不到餐廳")
-        )
+        return None
 
 if __name__ == "__main__":
     app.run(debug=True)
+
