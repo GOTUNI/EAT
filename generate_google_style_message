@@ -1,0 +1,12 @@
+from linebot.models import FlexSendMessage
+
+@handler.add(MessageEvent, message=LocationMessage)
+def handle_location_message(event):
+    lat = event.message.latitude
+    lng = event.message.longitude
+    restaurant = search_nearby_restaurant(lat, lng)
+    if restaurant:
+        google_style_message = generate_google_style_message(restaurant)
+        line_bot_api.reply_message(event.reply_token, google_style_message)
+    else:
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="抱歉，附近沒有找到餐廳"))
