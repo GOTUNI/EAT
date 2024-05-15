@@ -9,14 +9,13 @@ from linebot.models import MessageEvent, TextMessage, LocationMessage
 
 app = Flask(__name__)
 
-LINE_CHANNEL_ACCESS_TOKEN = 'ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn/Zgn8YPHKYfxJC90NHFr8ihfry5YKOjFiNPkHv+XGPydkBv5F0UAdB04t89/1O/w1cDnyilFU='
-GOOGLE_MAPS_API_KEY = 'AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE'
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler('4226f38b9cd8bce4d0417d29d575f750')
+handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
 def get_nearby_restaurants(latitude, longitude):
-    print(f"Fetching restaurants near: {latitude}, {longitude}")
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
     response = requests.get(url)
     data = response.json()
@@ -25,7 +24,10 @@ def get_nearby_restaurants(latitude, longitude):
 
 def format_restaurant_info(restaurant):
     photo_reference = restaurant.get('photos', [{}])[0].get('photo_reference', '')
-    photo_url = f'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_reference}&key={GOOGLE_MAPS_API_KEY}' if photo_reference else ''
+    if photo_reference:
+        photo_url = f'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_reference}&key={GOOGLE_MAPS_API_KEY}'
+    else:
+        photo_url = 'https://via.placeholder.com/400'  # Default image URL
     name = restaurant.get('name', '未知餐廳')
     address = restaurant.get('vicinity', '地址未知')
     phone_number = restaurant.get('formatted_phone_number', '電話號碼未知')
@@ -40,13 +42,13 @@ def create_carousel_template(restaurants):
     columns = []
     for restaurant in restaurants:
         info = format_restaurant_info(restaurant)
-        print(f"Restaurant info: {info}")  # 调试信息
+        print(f"Restaurant info: {info}")  # Log restaurant info for debugging
         column = CarouselColumn(
-            thumbnail_image_url=info['photo_url'] or 'https://via.placeholder.com/400',
+            thumbnail_image_url=info['photo_url'],
             title=info['name'][:40],
             text=info['address'][:60],
             actions=[
-                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}'),
+                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}')
             ]
         )
         columns.append(column)
@@ -87,12 +89,11 @@ def handle_location_message(event):
 
     nearby_restaurants = get_nearby_restaurants(latitude, longitude)
     if not nearby_restaurants:
+        print("No nearby restaurants found")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='找不到附近的餐廳'))
         return
 
-    print(f"Found nearby restaurants: {len(nearby_restaurants)}")
-    # Assuming user asked for nearby restaurants
-    message_text = event.message.text
+    print(f"Found {len(nearby_restaurants)} nearby restaurants")
     carousel_template = create_carousel_template(nearby_restaurants)
     line_bot_api.reply_message(event.reply_token, carousel_template)
 
