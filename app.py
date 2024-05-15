@@ -71,8 +71,10 @@ def callback():
 def handle_text_message(event):
     message_text = event.message.text
     if message_text in ['推薦附近餐廳', '隨機推薦附近餐廳']:
+        print(f"Received text message: {message_text}")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請分享您的位置'))
     else:
+        print(f"Received unknown text message: {message_text}")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='未知的指令'))
 
 @handler.add(MessageEvent, message=LocationMessage)
@@ -87,15 +89,9 @@ def handle_location_message(event):
         return
 
     # Assuming user asked for nearby restaurants
-    message_text = event.message.text
-    if message_text == '隨機推薦附近餐廳':
-        random_restaurant = random.choice(nearby_restaurants)
-        info = format_restaurant_info(random_restaurant)
-        text_message = f'名稱: {info["name"]}\n地址: {info["address"]}\n電話: {info["phone_number"]}'
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text_message))
-    else:
-        carousel_template = create_carousel_template(nearby_restaurants)
-        line_bot_api.reply_message(event.reply_token, carousel_template)
+    print(f"Handling location for nearby restaurants")
+    carousel_template = create_carousel_template(nearby_restaurants)
+    line_bot_api.reply_message(event.reply_token, carousel_template)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
