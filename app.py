@@ -40,6 +40,7 @@ def create_carousel_template(restaurants):
     columns = []
     for restaurant in restaurants:
         info = format_restaurant_info(restaurant)
+        print(f"Restaurant info: {info}")  # 调试信息
         column = CarouselColumn(
             thumbnail_image_url=info['photo_url'] or 'https://via.placeholder.com/400',
             title=info['name'][:40],
@@ -90,11 +91,10 @@ def handle_location_message(event):
         return
 
     print(f"Found nearby restaurants: {len(nearby_restaurants)}")
-    # Random restaurant recommendation
-    random_restaurant = random.choice(nearby_restaurants)
-    info = format_restaurant_info(random_restaurant)
-    text_message = f'名稱: {info["name"]}\n地址: {info["address"]}\n電話: {info["phone_number"]}'
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text_message))
+    # Assuming user asked for nearby restaurants
+    message_text = event.message.text
+    carousel_template = create_carousel_template(nearby_restaurants)
+    line_bot_api.reply_message(event.reply_token, carousel_template)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
