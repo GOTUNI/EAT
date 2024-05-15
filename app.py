@@ -13,7 +13,7 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv('ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1
 GOOGLE_MAPS_API_KEY = os.getenv(AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE')
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
+handler = WebhookHandler(os.getenv('4226f38b9cd8bce4d0417d29d575f750'))
 
 def get_nearby_restaurants(latitude, longitude):
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
