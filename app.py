@@ -9,8 +9,8 @@ from linebot.models import MessageEvent, TextMessage, LocationMessage
 
 app = Flask(__name__)
 
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv('ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn/Zgn8YPHKYfxJC90NHFr8ihfry5YKOjFiNPkHv+XGPydkBv5F0UAdB04t89/1O/w1cDnyilFU=')
+GOOGLE_MAPS_API_KEY = os.getenv(AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE')
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
