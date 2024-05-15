@@ -9,17 +9,18 @@ from linebot.models import MessageEvent, TextMessage, LocationMessage
 
 app = Flask(__name__)
 
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv('ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn/Zgn8YPHKYfxJC90NHFr8ihfry5YKOjFiNPkHv+XGPydkBv5F0UAdB04t89/1O/w1cDnyilFU=')
-GOOGLE_MAPS_API_KEY = os.getenv(AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE')
+LINE_CHANNEL_ACCESS_TOKEN = 'ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSouLzo1rbTZxo24IWBi0E3AP8lBSOj7SRVt0GkK5Duowbfjn/Zgn8YPHKYfxJC90NHFr8ihfry5YKOjFiNPkHv+XGPydkBv5F0UAdB04t89/1O/w1cDnyilFU='
+LINE_CHANNEL_SECRET = '4226f38b9cd8bce4d0417d29d575f750'
+GOOGLE_MAPS_API_KEY = 'AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE'
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(os.getenv('4226f38b9cd8bce4d0417d29d575f750'))
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 def get_nearby_restaurants(latitude, longitude):
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
     response = requests.get(url)
     data = response.json()
-    print(f"Nearby restaurants data: {data}")
+    print(f"Nearby restaurants data: {data}")  # 打印获取到的数据以供调试
     return data.get('results', [])
 
 def format_restaurant_info(restaurant):
@@ -27,7 +28,7 @@ def format_restaurant_info(restaurant):
     if photo_reference:
         photo_url = f'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_reference}&key={GOOGLE_MAPS_API_KEY}'
     else:
-        photo_url = 'https://via.placeholder.com/400'  # Default image URL
+        photo_url = 'https://via.placeholder.com/400'  # 默认图片 URL
     name = restaurant.get('name', '未知餐廳')
     address = restaurant.get('vicinity', '地址未知')
     phone_number = restaurant.get('formatted_phone_number', '電話號碼未知')
@@ -42,7 +43,7 @@ def create_carousel_template(restaurants):
     columns = []
     for restaurant in restaurants:
         info = format_restaurant_info(restaurant)
-        print(f"Restaurant info: {info}")  # Log restaurant info for debugging
+        print(f"Restaurant info: {info}")  # 打印餐厅信息以供调试
         column = CarouselColumn(
             thumbnail_image_url=info['photo_url'],
             title=info['name'][:40],
@@ -61,7 +62,7 @@ def create_carousel_template(restaurants):
 def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
-    print(f"Request body: {body}")
+    print(f"Request body: {body}")  # 打印请求体以供调试
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
