@@ -5,7 +5,7 @@ from linebot import WebhookHandler, LineBotApi
 from linebot.models import TextSendMessage, TemplateSendMessage, CarouselTemplate, CarouselColumn, MessageAction
 from flask import Flask, request, abort
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage
+from linebot.models import MessageEvent, TextMessage, LocationMessage
 
 app = Flask(__name__)
 
@@ -56,6 +56,7 @@ def create_carousel_template(restaurants):
 def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
+    print(f"Request body: {body}")
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -67,26 +68,33 @@ def callback():
     return 'OK'
 
 @handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
+def handle_text_message(event):
     message_text = event.message.text
     if message_text in ['推薦附近餐廳', '隨機推薦附近餐廳']:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請分享您的位置'))
     else:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='未知的指令'))
 
-@handler.add(MessageEvent, message=TextMessage)
-def handle_location(event):
+@handler.add(MessageEvent, message=LocationMessage)
+def handle_location_message(event):
+    latitude = event.message.latitude
+    longitude = event.message.longitude
     message_text = event.message.text
+    print(f"Received location: {latitude}, {longitude}")
     if message_text == '推薦附近餐廳':
-        latitude = event.message.latitude
-        longitude = event.message.longitude
         nearby_restaurants = get_nearby_restaurants(latitude, longitude)
         carousel_template = create_carousel_template(nearby_restaurants)
         line_bot_api.reply_message(event.reply_token, carousel_template)
     elif message_text == '隨機推薦附近餐廳':
-        latitude = event.message.latitude
-        longitude = event.message.longitude
         nearby_restaurants = get_nearby_restaurants(latitude, longitude)
         if nearby_restaurants:
             random_restaurant = random.choice(nearby_restaurants)
-            info = format_restauran
+            info = format_restaurant_info(random_restaurant)
+            text_message = f'名稱: {info["name"]}\n地址: {info["address"]}\n電話: {info["phone_number"]}'
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text_message))
+        else:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text='找不到附近的餐廳'))
+
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
