@@ -16,9 +16,11 @@ line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler('4226f38b9cd8bce4d0417d29d575f750')
 
 def get_nearby_restaurants(latitude, longitude):
+    print(f"Fetching restaurants near: {latitude}, {longitude}")
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
     response = requests.get(url)
     data = response.json()
+    print(f"Nearby restaurants data: {data}")
     return data.get('results', [])
 
 def format_restaurant_info(restaurant):
@@ -70,11 +72,10 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
     message_text = event.message.text
+    print(f"Received text message: {message_text}")
     if message_text in ['推薦附近餐廳', '隨機推薦附近餐廳']:
-        print(f"Received text message: {message_text}")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請分享您的位置'))
     else:
-        print(f"Received unknown text message: {message_text}")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='未知的指令'))
 
 @handler.add(MessageEvent, message=LocationMessage)
@@ -88,10 +89,12 @@ def handle_location_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text='找不到附近的餐廳'))
         return
 
-    # Assuming user asked for nearby restaurants
-    print(f"Handling location for nearby restaurants")
-    carousel_template = create_carousel_template(nearby_restaurants)
-    line_bot_api.reply_message(event.reply_token, carousel_template)
+    print(f"Found nearby restaurants: {len(nearby_restaurants)}")
+    # Random restaurant recommendation
+    random_restaurant = random.choice(nearby_restaurants)
+    info = format_restaurant_info(random_restaurant)
+    text_message = f'名稱: {info["name"]}\n地址: {info["address"]}\n電話: {info["phone_number"]}'
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text_message))
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
