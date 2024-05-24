@@ -78,9 +78,9 @@ def handle_text_message(event):
     user_id = event.source.user_id
     message_text = event.message.text
     if message_text == '推薦附近餐廳':
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='按左下方「+」，選擇位置訊息，將您的位置分享給我謝謝！♡♡♡'))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請麻煩您按左下方「+」，選擇位置訊息，將您的位置分享給我謝謝！♡♡♡'))
     elif message_text == '隨機推薦附近餐廳':
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='按左下方「+」，選擇位置訊息，將您的位置分享給我謝謝！♡♡♡'))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請麻煩您按左下方「+」，選擇位置訊息，將您的位置分享給我謝謝！♡♡♡'))
 
 @handler.add(MessageEvent, message=LocationMessage)
 def handle_location_message(event):
@@ -94,4 +94,3 @@ def handle_location_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-請問這段程式碼中 該如何將詳細資訊加上商家的電話號碼?
