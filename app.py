@@ -32,19 +32,9 @@ def callback():
 
 def get_nearby_restaurants(latitude, longitude):
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
-    print(f"Requesting nearby restaurants with URL: {url}")
     response = requests.get(url)
     data = response.json()
-    print(f"Nearby restaurants response: {data}")
     return data.get('results', [])[:10]
-
-def get_restaurant_details(place_id):
-    url = f'https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&key={GOOGLE_MAPS_API_KEY}'
-    print(f"Requesting restaurant details with URL: {url}")
-    response = requests.get(url)
-    details = response.json().get('result', {})
-    print(f"Restaurant details response: {details}")
-    return details
 
 def format_restaurant_info(restaurant):
     photo_url = restaurant.get('photos')[0]['photo_reference'] if restaurant.get('photos') else ''
@@ -52,11 +42,14 @@ def format_restaurant_info(restaurant):
     address = restaurant.get('vicinity', '')[:60]
     place_id = restaurant.get('place_id', '')
     
-    details = get_restaurant_details(place_id)
-    phone_number = details.get('formatted_phone_number', '電話號碼不詳')
+    # Fetch detailed information using place_id
+    details_url = f'https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&key={GOOGLE_MAPS_API_KEY}'
+    details_response = requests.get(details_url)
+    details_data = details_response.json()
+    phone_number = details_data.get('result', {}).get('formatted_phone_number', '電話號碼不詳')
     
     return {
-        'photo_url': f'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_url}&key={GOOGLE_MAPS_API_KEY}' if photo_url else '',
+        'photo_url': f'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_url}&key={GOOGLE_MAPS_API_KEY}',
         'name': name,
         'address': address,
         'phone_number': phone_number
@@ -67,11 +60,11 @@ def create_carousel_template(restaurants):
     for restaurant in restaurants:
         info = format_restaurant_info(restaurant)
         column = CarouselColumn(
-            thumbnail_image_url=info['photo_url'] if info['photo_url'] else None,
+            thumbnail_image_url=info['photo_url'],
             title=info['name'],
-            text=f"{info['address']}\n電話: {info['phone_number']}",
+            text=f"{info['address']}\n{info['phone_number']}",
             actions=[
-                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}\n電話: {info["phone_number"]}'),
+                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}\n電話號碼: {info["phone_number"]}'),
             ]
         )
         columns.append(column)
