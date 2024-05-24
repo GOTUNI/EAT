@@ -64,7 +64,7 @@ def create_carousel_template(restaurants):
             title=info['name'],
             text=info['address'],
             actions=[
-                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}'),
+                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}\n電話號碼: {info["phone_number"]}'),
             ]
         )
         columns.append(column)
@@ -78,9 +78,9 @@ def handle_text_message(event):
     user_id = event.source.user_id
     message_text = event.message.text
     if message_text == '推薦附近餐廳':
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請分享您的位置'))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='按左下方「+」，選擇位置訊息，將您的位置分享給我謝謝！♡♡♡'))
     elif message_text == '隨機推薦附近餐廳':
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='請分享您的位置'))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text='按左下方「+」，選擇位置訊息，將您的位置分享給我謝謝！♡♡♡'))
 
 @handler.add(MessageEvent, message=LocationMessage)
 def handle_location_message(event):
