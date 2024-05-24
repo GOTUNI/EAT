@@ -32,14 +32,19 @@ def callback():
 
 def get_nearby_restaurants(latitude, longitude):
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
+    print(f"Requesting nearby restaurants with URL: {url}")
     response = requests.get(url)
     data = response.json()
+    print(f"Nearby restaurants response: {data}")
     return data.get('results', [])[:10]
 
 def get_restaurant_details(place_id):
     url = f'https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&key={GOOGLE_MAPS_API_KEY}'
+    print(f"Requesting restaurant details with URL: {url}")
     response = requests.get(url)
-    return response.json().get('result', {})
+    details = response.json().get('result', {})
+    print(f"Restaurant details response: {details}")
+    return details
 
 def format_restaurant_info(restaurant):
     photo_url = restaurant.get('photos')[0]['photo_reference'] if restaurant.get('photos') else ''
