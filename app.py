@@ -1,13 +1,18 @@
 from flask import Flask, request, abort
+
 from linebot import (
     LineBotApi, WebhookHandler
 )
 from linebot.exceptions import (
     InvalidSignatureError
 )
-from linebot.models import *
+from linebot.models import*
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, LocationMessage
+import tempfile, os
+import datetime
 import requests
-import os
+import time
 
 app = Flask(__name__)
 # Channel Access Token
@@ -15,6 +20,8 @@ line_bot_api = LineBotApi('ZXxMakoI5GNuejiC7Igzm1wvqw3vDxHGRlicvQPM1qizx9eqUJSou
 # Channel Secret
 handler = WebhookHandler('4226f38b9cd8bce4d0417d29d575f750')
 GOOGLE_MAPS_API_KEY = 'AIzaSyD5sX433QilH8IVyjPiIpqqzJAy_dZrLvE'
+
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -34,20 +41,13 @@ def get_nearby_restaurants(latitude, longitude):
     url = f'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=500&type=restaurant&key={GOOGLE_MAPS_API_KEY}'
     response = requests.get(url)
     data = response.json()
-    return data.get('results', [])[:10]
+    return data.get('results', [])[:10]  # 使用切片操作限制返回的餐廳列表不超過10個
 
 def format_restaurant_info(restaurant):
     photo_url = restaurant.get('photos')[0]['photo_reference'] if restaurant.get('photos') else ''
     name = restaurant.get('name', '')
-    address = restaurant.get('vicinity', '')[:60]
-    place_id = restaurant.get('place_id', '')
-    
-    # Fetch detailed information using place_id
-    details_url = f'https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&key={GOOGLE_MAPS_API_KEY}'
-    details_response = requests.get(details_url)
-    details_data = details_response.json()
-    phone_number = details_data.get('result', {}).get('formatted_phone_number', '電話號碼不詳')
-    
+    address = restaurant.get('vicinity', '')[:60]  # 對地址進行切片，確保長度不超過60個字符
+    phone_number = restaurant.get('formatted_phone_number', '')
     return {
         'photo_url': f'https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_url}&key={GOOGLE_MAPS_API_KEY}',
         'name': name,
@@ -62,9 +62,9 @@ def create_carousel_template(restaurants):
         column = CarouselColumn(
             thumbnail_image_url=info['photo_url'],
             title=info['name'],
-            text=f"{info['address']}\n{info['phone_number']}",
+            text=info['address'],
             actions=[
-                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}\n電話號碼: {info["phone_number"]}'),
+                MessageAction(label='詳細資訊', text=f'詳細資訊: {info["name"]}'),
             ]
         )
         columns.append(column)
@@ -94,3 +94,4 @@ def handle_location_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+請問這段程式碼中 該如何將詳細資訊加上商家的電話號碼?
